@@ -65,6 +65,6 @@ func gracefulStop(s *grpc.Server) {
 	c := make(chan os.Signal, 2)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	signal := <-c
-	log.Infof("Stopping NOMOS-service. signal : %s", signal)
+	log.Infof("Stopping rate limiter service. signal : %s", signal)
 	s.GracefulStop()
 }
