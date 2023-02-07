@@ -58,10 +58,10 @@ func initConfig() {
 			AwsSecretAccessKey: "temp",
 		},
 		RateLimiterDynamo: Dynamo{
-			Region:   "temp",
-			Endpoint: "temp",
-			Table:    "temp",
-			Index:    "temp",
+			Region:   "dummy",
+			Endpoint: "http://localhost:8000",
+			Table:    "rate-limiter-db-dev",
+			Index:    "notNeeded",
 		},
 		//todo fetch redis cache config from conf file <- will implement this
 		Redis: RedisCacheConfig{

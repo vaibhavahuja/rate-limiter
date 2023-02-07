@@ -34,5 +34,5 @@ message Rule {
 
 message Rate{
   int32 requestsPerUnit = 1;
-  string unit = 2;
+  int32 unit = 2;
 }

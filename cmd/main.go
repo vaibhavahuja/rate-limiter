@@ -5,7 +5,8 @@ import (
 	grpcrecovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	log "github.com/sirupsen/logrus"
 	"github.com/vaibhavahuja/rate-limiter/config"
-	"github.com/vaibhavahuja/rate-limiter/internal/app/gateway"
+	"github.com/vaibhavahuja/rate-limiter/internal/app/gateway/handler"
+	"github.com/vaibhavahuja/rate-limiter/internal/app/gateway/repository"
 	"github.com/vaibhavahuja/rate-limiter/internal/app/service"
 	"github.com/vaibhavahuja/rate-limiter/internal/pkg/infrastructure"
 	pb "github.com/vaibhavahuja/rate-limiter/proto"
@@ -27,10 +28,8 @@ func init() {
 }
 
 func main() {
-	log.Info("starting rate limiter")
+	log.Info("Starting Rate Limiter service")
 	s := startGRPCServer()
-
-	log.Info("started rate limiter")
 	gracefulStop(s)
 }
 
@@ -49,8 +48,11 @@ func startGRPCServer() *grpc.Server {
 		),
 	)
 	redisClient := infrastructure.GetRedisClient(conf.Redis.Url, conf.Redis.Password)
-	application := service.NewApplication(conf, redisClient)
-	svc := gateway.NewRateLimiterGrpcServer(application)
+	dynamoClient := infrastructure.GetDynamoDBClient(conf.RateLimiterDynamo.Region, conf.RateLimiterDynamo.Endpoint)
+
+	rulesRepository := repository.NewRuleRepository(dynamoClient, conf.RateLimiterDynamo.Table)
+	application := service.NewApplication(conf, redisClient, rulesRepository)
+	svc := handler.NewRateLimiterGrpcServer(application)
 
 	pb.RegisterRateLimiterServer(s, &svc)
 	go func() {
