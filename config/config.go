@@ -28,10 +28,16 @@ type Dynamo struct {
 	Index    string
 }
 
+type RedisCacheConfig struct {
+	Url      string
+	Password string
+}
+
 type Config struct {
 	Service           Service
 	AWSConfig         AWSConfig
 	RateLimiterDynamo Dynamo
+	Redis             RedisCacheConfig
 }
 
 func GetConfig() *Config {
@@ -56,6 +62,11 @@ func initConfig() {
 			Endpoint: "temp",
 			Table:    "temp",
 			Index:    "temp",
+		},
+		//todo fetch redis cache config from conf file <- will implement this
+		Redis: RedisCacheConfig{
+			Url:      "localhost:6379",
+			Password: "rAtE_LimiTEr_pasSwoRd",
 		},
 	}
 }

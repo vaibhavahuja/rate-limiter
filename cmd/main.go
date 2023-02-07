@@ -7,6 +7,7 @@ import (
 	"github.com/vaibhavahuja/rate-limiter/config"
 	"github.com/vaibhavahuja/rate-limiter/internal/app/gateway"
 	"github.com/vaibhavahuja/rate-limiter/internal/app/service"
+	"github.com/vaibhavahuja/rate-limiter/internal/pkg/infrastructure"
 	pb "github.com/vaibhavahuja/rate-limiter/proto"
 	"google.golang.org/grpc"
 	"net"
@@ -47,7 +48,8 @@ func startGRPCServer() *grpc.Server {
 			),
 		),
 	)
-	application := service.NewApplication(conf)
+	redisClient := infrastructure.GetRedisClient(conf.Redis.Url, conf.Redis.Password)
+	application := service.NewApplication(conf, redisClient)
 	svc := gateway.NewRateLimiterGrpcServer(application)
 
 	pb.RegisterRateLimiterServer(s, &svc)

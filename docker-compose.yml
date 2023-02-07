@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  dynamodb:
+    image: amazon/dynamodb-local:latest
+    container_name: dynamodb-local
+    ports:
+      - 8000:8000
+    command: [ "-jar", "DynamoDBLocal.jar", "-inMemory", "-sharedDb" ]
+  cache:
+    image: redis:6.2-alpine
+    ports:
+      - '6379:6379'
+    command: redis-server --loglevel warning --requirepass rAtE_LimiTEr_pasSwoRd

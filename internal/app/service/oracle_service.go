@@ -8,8 +8,8 @@ import (
 func (app *Application) ShouldForwardRequest(serviceId int32, request string) (bool, error) {
 	log.Infof("Checking if rate limit has reached or not for : %d", serviceId)
 	//todo implement the method
-	//fetch rules + fetch data from cache
-	//asynchronously update cache
-	//return response
+	// fetch rules + fetch data from cache
+	// asynchronously update cache
+	// return response
 	return false, nil
 }
