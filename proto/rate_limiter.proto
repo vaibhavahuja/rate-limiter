@@ -1,0 +1,38 @@
+syntax = "proto3";
+option go_package = "./proto";
+package proto;
+
+service RateLimiter{
+  rpc RegisterService(RegisterServiceRequest) returns (RegisterServiceResponse);
+  rpc ShouldForwardRequest(ShouldForwardsRequestRequest) returns (ShouldForwardRequestResponse);
+}
+
+message ShouldForwardRequestResponse {
+  bool shouldForward = 1;
+}
+
+message ShouldForwardsRequestRequest{
+  int32 serviceId = 1;
+  string request = 2;
+}
+
+message RegisterServiceRequest{
+  int32 serviceId = 1;
+  Rule rule = 2;
+}
+
+message RegisterServiceResponse{
+  int32 status = 1;
+  string error = 2;
+}
+
+message Rule {
+  string field = 1;
+  Rate rate = 2;
+  string ErrorMessage = 3;
+}
+
+message Rate{
+  int32 requestsPerUnit = 1;
+  string unit = 2;
+}
