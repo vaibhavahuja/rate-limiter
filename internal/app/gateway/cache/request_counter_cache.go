@@ -22,7 +22,6 @@ func (rcc *RequestCounterCache) IncrementRequestCounter(key string, exists bool,
 		err = rcc.redisClient.Incr(key).Err()
 		if err != nil {
 			log.Errorf("error while incrementing request counter for key : %s", key)
-			return
 		}
 		return
 	}
@@ -44,4 +43,25 @@ func (rcc *RequestCounterCache) FetchCounterValueForKey(key string) (int, error)
 	}
 	intVal, _ := strconv.Atoi(counterVal)
 	return intVal, nil
+}
+
+// FetchCounterValueForKeys fetches the value for counters for given keys
+func (rcc *RequestCounterCache) FetchCounterValueForKeys(keys ...string) (counterResponseList []int, err error) {
+	log.Infof("fetching values for multiple keys")
+	counterValList, err := rcc.redisClient.MGet(keys...).Result()
+	log.Infof("counter val is %v", counterValList)
+	if err != nil {
+		log.Errorf("Error while fetching counter value for key : %s", keys)
+		return
+	}
+	for _, counter := range counterValList {
+
+		val, ok := counter.(string)
+		if !ok {
+			val = "0"
+		}
+		intVal, _ := strconv.Atoi(val)
+		counterResponseList = append(counterResponseList, intVal)
+	}
+	return
 }

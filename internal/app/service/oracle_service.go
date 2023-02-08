@@ -20,28 +20,22 @@ func (app *Application) ShouldForwardRequest(ctx context.Context, serviceId int3
 	}
 	rateTimeUnit := constants.RateUnitType(serviceRule.Rate.UnitType)
 	currentTime := time.Now()
-	//creates key value
 	currentTimeKeyValue, _ := json.Marshal(createKeyValue(int(serviceId), request, currentTime, 0, rateTimeUnit))
 	previousTimeKeyValue, _ := json.Marshal(createKeyValue(int(serviceId), request, currentTime, rateTimeUnit.GetDuration(), rateTimeUnit))
-	log.Debugf("here are my keys : currentTimeKey : %s, previousTimeKeyValue : %s", currentTimeKeyValue, previousTimeKeyValue)
 
-	//todo fetch both in one call to cache
-	currentCounter, _ := app.requestCounterCache.FetchCounterValueForKey(string(currentTimeKeyValue))
-	prevCounter, _ := app.requestCounterCache.FetchCounterValueForKey(string(previousTimeKeyValue))
-
+	counterVals, _ := app.requestCounterCache.FetchCounterValueForKeys(string(currentTimeKeyValue), string(previousTimeKeyValue))
+	currentCounter, prevCounter := counterVals[0], counterVals[1]
 	currentCounterExists := false
-	log.Debugf("currentCounter : %v, prevCounter %v", currentCounter, prevCounter)
-
 	if currentCounter != 0 {
 		currentCounterExists = true
 	}
-	log.Infof("max limit is : %v and you have reached %v requests", serviceRule.Rate.RequestsPerUnit, getSlidingWindowRequestCount(currentTime, rateTimeUnit, currentCounter, prevCounter))
+
 	totalRequestsCountInSlidingWindow := getSlidingWindowRequestCount(currentTime, rateTimeUnit, currentCounter, prevCounter)
-	if totalRequestsCountInSlidingWindow >= int(serviceRule.Rate.RequestsPerUnit) {
-		//We do not allow the request to go through
+	if totalRequestsCountInSlidingWindow > int(serviceRule.Rate.RequestsPerUnit) {
+		//We do not allow the request to go through if limit has reached
 		return false, nil
 	}
-	//Spinning new goRoutine to increment request counter
+	//Spinning new goRoutine to increment request counter - need to think about this!
 	go func(key string, exists bool, ttl time.Duration) {
 		//Register request if the request goes through
 		err = app.requestCounterCache.IncrementRequestCounter(string(currentTimeKeyValue), currentCounterExists, 2*rateTimeUnit.GetDuration())
@@ -56,7 +50,6 @@ func (app *Application) ShouldForwardRequest(ctx context.Context, serviceId int3
 // slidingWindowRequestCounter Returns the count of requests for the specified timeUnit
 func getSlidingWindowRequestCount(currentTime time.Time, rateUnitType constants.RateUnitType, currentWindowCounter, previousWindowCounter int) (count int) {
 	percentageTimePassed := rateUnitType.GetTimePassedPercentage(currentTime.UTC())
-	//log.Debugf("calculated percentage time passed : %v", percentageTimePassed)
 	count = int((1-percentageTimePassed)*float64(previousWindowCounter) + float64(currentWindowCounter))
 	return
 }
