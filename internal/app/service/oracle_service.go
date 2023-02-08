@@ -12,7 +12,7 @@ import (
 // ShouldForwardRequest returns true if the rate limit of serviceId has not reached
 func (app *Application) ShouldForwardRequest(ctx context.Context, serviceId int32, request string) (bool, error) {
 	log.Infof("Checking if rate limit has reached or not for : %d", serviceId)
-	//fetches the rule for given serviceId
+	//fetching the rule for given serviceId
 	serviceRule, err := app.rulesRepository.GetRuleByServiceId(ctx, int(serviceId))
 	if err != nil {
 		log.Errorf("error while fetching rules for service id %d", serviceId)
@@ -23,6 +23,7 @@ func (app *Application) ShouldForwardRequest(ctx context.Context, serviceId int3
 	currentTimeKeyValue, _ := json.Marshal(createKeyValue(int(serviceId), request, currentTime, 0, rateTimeUnit))
 	previousTimeKeyValue, _ := json.Marshal(createKeyValue(int(serviceId), request, currentTime, rateTimeUnit.GetDuration(), rateTimeUnit))
 
+	//Fetching request counter value for current and previous timeStamp keys
 	counterVals, _ := app.requestCounterCache.FetchCounterValueForKeys(string(currentTimeKeyValue), string(previousTimeKeyValue))
 	currentCounter, prevCounter := counterVals[0], counterVals[1]
 	currentCounterExists := false
