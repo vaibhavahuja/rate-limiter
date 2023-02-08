@@ -12,7 +12,6 @@ import (
 // ShouldForwardRequest returns true if the rate limit of serviceId has not reached
 func (app *Application) ShouldForwardRequest(ctx context.Context, serviceId int32, request string) (bool, error) {
 	log.Infof("Checking if rate limit has reached or not for : %d", serviceId)
-
 	//fetches the rule for given serviceId
 	serviceRule, err := app.rulesRepository.GetRuleByServiceId(ctx, int(serviceId))
 	if err != nil {
@@ -20,32 +19,46 @@ func (app *Application) ShouldForwardRequest(ctx context.Context, serviceId int3
 		return true, err
 	}
 	rateTimeUnit := constants.RateUnitType(serviceRule.Rate.UnitType)
-	log.Infof("my rate time unit is %v", rateTimeUnit)
 	currentTime := time.Now()
 	//creates key value
 	currentTimeKeyValue, _ := json.Marshal(createKeyValue(int(serviceId), request, currentTime, 0, rateTimeUnit))
 	previousTimeKeyValue, _ := json.Marshal(createKeyValue(int(serviceId), request, currentTime, rateTimeUnit.GetDuration(), rateTimeUnit))
-	log.Infof("here are my keys : currentTimeKey : %s, previousTimeKeyValue : %s", currentTimeKeyValue, previousTimeKeyValue)
-	//fetches value of prevKey and currKey counters concurrently!!
+	log.Debugf("here are my keys : currentTimeKey : %s, previousTimeKeyValue : %s", currentTimeKeyValue, previousTimeKeyValue)
 
 	//todo fetch both in one call to cache
 	currentCounter, _ := app.requestCounterCache.FetchCounterValueForKey(string(currentTimeKeyValue))
 	prevCounter, _ := app.requestCounterCache.FetchCounterValueForKey(string(previousTimeKeyValue))
 
-	exists := false
-	log.Infof("currentCounter : %v, prevCounter %v", currentCounter, prevCounter)
-	if currentCounter != 0 {
-		exists = true
-	}
-	//your logic - sliding window algorithm
-	//todo write sliding window algo here
+	currentCounterExists := false
+	log.Debugf("currentCounter : %v, prevCounter %v", currentCounter, prevCounter)
 
-	//send update request to channel -> do this asynchronously
-	err = app.requestCounterCache.IncrementRequestCounter(string(currentTimeKeyValue), exists, 2*rateTimeUnit.GetDuration())
-	if err != nil {
-		log.Errorf("error while incrementing request counter")
+	if currentCounter != 0 {
+		currentCounterExists = true
 	}
+	log.Infof("max limit is : %v and you have reached %v requests", serviceRule.Rate.RequestsPerUnit, getSlidingWindowRequestCount(currentTime, rateTimeUnit, currentCounter, prevCounter))
+	totalRequestsCountInSlidingWindow := getSlidingWindowRequestCount(currentTime, rateTimeUnit, currentCounter, prevCounter)
+	if totalRequestsCountInSlidingWindow >= int(serviceRule.Rate.RequestsPerUnit) {
+		//We do not allow the request to go through
+		return false, nil
+	}
+	//Spinning new goRoutine to increment request counter
+	go func(key string, exists bool, ttl time.Duration) {
+		//Register request if the request goes through
+		err = app.requestCounterCache.IncrementRequestCounter(string(currentTimeKeyValue), currentCounterExists, 2*rateTimeUnit.GetDuration())
+		if err != nil {
+			log.Errorf("error while incrementing request counter")
+		}
+	}(string(currentTimeKeyValue), currentCounterExists, 2*rateTimeUnit.GetDuration())
+
 	return true, nil
+}
+
+// slidingWindowRequestCounter Returns the count of requests for the specified timeUnit
+func getSlidingWindowRequestCount(currentTime time.Time, rateUnitType constants.RateUnitType, currentWindowCounter, previousWindowCounter int) (count int) {
+	percentageTimePassed := rateUnitType.GetTimePassedPercentage(currentTime.UTC())
+	//log.Debugf("calculated percentage time passed : %v", percentageTimePassed)
+	count = int((1-percentageTimePassed)*float64(previousWindowCounter) + float64(currentWindowCounter))
+	return
 }
 
 // createKeyValue Fetches keyValue for storing/fetching counter from cache

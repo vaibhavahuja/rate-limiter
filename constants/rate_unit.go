@@ -51,3 +51,11 @@ func (rt RateUnitType) ConvertTimeToRateUnit(input time.Time) time.Time {
 		return time.Date(input.Year(), input.Month(), input.Day(), input.Hour(), input.Minute(), input.Second(), input.Nanosecond(), time.UTC)
 	}
 }
+
+// GetTimePassedPercentage Returns time passed percentage as per the rateUnitType specified
+func (rt RateUnitType) GetTimePassedPercentage(input time.Time) (percentageResponse float64) {
+	durationTimeInMyFormat := rt.ConvertTimeToRateUnit(input)
+	a, b := durationTimeInMyFormat.UnixMilli(), input.UnixMilli()
+	percentageResponse = (float64(b) - float64(a)) / float64(rt.GetDuration().Milliseconds())
+	return
+}
