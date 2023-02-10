@@ -10,6 +10,7 @@ require (
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/sirupsen/logrus v1.9.0
+	github.com/stretchr/testify v1.7.0
 	google.golang.org/grpc v1.52.3
 	google.golang.org/protobuf v1.28.1
 )
@@ -28,12 +29,15 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.14.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.18.3 // indirect
 	github.com/aws/smithy-go v1.13.5 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/onsi/gomega v1.26.0 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/net v0.5.0 // indirect
 	golang.org/x/sys v0.4.0 // indirect
 	golang.org/x/text v0.6.0 // indirect
 	google.golang.org/genproto v0.0.0-20221118155620-16455021b5e6 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
