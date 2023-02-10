@@ -5,6 +5,9 @@ import (
 	grpcrecovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	log "github.com/sirupsen/logrus"
 	"github.com/vaibhavahuja/rate-limiter/config"
+	"github.com/vaibhavahuja/rate-limiter/constants"
+	"github.com/vaibhavahuja/rate-limiter/internal/app/entities"
+	"github.com/vaibhavahuja/rate-limiter/internal/app/gateway/cache"
 	"github.com/vaibhavahuja/rate-limiter/internal/app/gateway/handler"
 	"github.com/vaibhavahuja/rate-limiter/internal/app/gateway/repository"
 	"github.com/vaibhavahuja/rate-limiter/internal/app/service"
@@ -23,6 +26,7 @@ var (
 
 func init() {
 	conf = config.GetConfig()
+	log.SetLevel(log.DebugLevel)
 	log.SetFormatter(&log.JSONFormatter{PrettyPrint: true})
 	log.SetReportCaller(true)
 }
@@ -49,11 +53,17 @@ func startGRPCServer() *grpc.Server {
 	)
 	redisClient := infrastructure.GetRedisClient(conf.Redis.Url, conf.Redis.Password)
 	dynamoClient := infrastructure.GetDynamoDBClient(conf.RateLimiterDynamo.Region, conf.RateLimiterDynamo.Endpoint)
-
 	rulesRepository := repository.NewRuleRepository(dynamoClient, conf.RateLimiterDynamo.Table)
-	application := service.NewApplication(conf, redisClient, rulesRepository)
-	svc := handler.NewRateLimiterGrpcServer(application)
-
+	requestCounterCache := cache.NewRequestCounterCache(redisClient)
+	rateLimitingRequestChanArray := initialiseRateLimiterChannels(constants.RateLimitingRequestWorkersSize, constants.RateLimitingChannelQueueSize)
+	exitChan := make(chan bool)
+	application := service.NewApplication(conf, rulesRepository, requestCounterCache)
+	log.Infof("after initialising length of channel : %d", len(rateLimitingRequestChanArray))
+	//starting worker goRoutines
+	for i := 0; i < constants.RateLimitingRequestWorkersSize; i++ {
+		go application.SlidingWindowAlgorithmWorker(i, rateLimitingRequestChanArray[i], exitChan)
+	}
+	svc := handler.NewRateLimiterGrpcServer(application, rateLimitingRequestChanArray)
 	pb.RegisterRateLimiterServer(s, &svc)
 	go func() {
 		log.Info("Starting gRPC server")
@@ -63,6 +73,14 @@ func startGRPCServer() *grpc.Server {
 	}()
 	log.Infof("Successfully started gRPC server and running on %v", s.GetServiceInfo())
 	return s
+}
+
+func initialiseRateLimiterChannels(workerSize, queueSize int) (resp []chan entities.SlidingWindowRequestChannel) {
+	//initialising requestChannelArray
+	for i := 0; i < workerSize; i++ {
+		resp = append(resp, make(chan entities.SlidingWindowRequestChannel, queueSize))
+	}
+	return
 }
 
 func gracefulStop(s *grpc.Server) {
