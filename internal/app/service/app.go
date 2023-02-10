@@ -7,15 +7,15 @@ import (
 )
 
 type Application struct {
-	conf *config.Config
-	rulesRepository     *repository.RuleRepository
-	requestCounterCache *cache.RequestCounterCache
+	conf                        *config.Config
+	rulesRepository             *repository.RuleRepository
+	requestCounterCache         *cache.RequestCounterCache
 }
 
 func NewApplication(conf *config.Config, rulesRepository *repository.RuleRepository, requestCounterCache *cache.RequestCounterCache) *Application {
 	return &Application{
-		conf:                conf,
-		rulesRepository:     rulesRepository,
-		requestCounterCache: requestCounterCache,
+		conf:                        conf,
+		rulesRepository:             rulesRepository,
+		requestCounterCache:         requestCounterCache,
 	}
 }

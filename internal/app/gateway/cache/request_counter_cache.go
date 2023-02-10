@@ -15,21 +15,14 @@ func NewRequestCounterCache(client *redis.Client) *RequestCounterCache {
 	}
 }
 
-// IncrementRequestCounter increments request counter by one if key exists
-// otherwise, it creates the key with defined TTL
+// IncrementRequestCounter Increments the request counter and sets the expiry if key is getting initialised
 func (rcc *RequestCounterCache) IncrementRequestCounter(key string, exists bool, ttl time.Duration) (err error) {
-	if exists {
-		err = rcc.redisClient.Incr(key).Err()
-		if err != nil {
-			log.Errorf("error while incrementing request counter for key : %s", key)
-		}
-		return
+	err = rcc.redisClient.Incr(key).Err()
+	if !exists {
+		err = rcc.redisClient.Expire(key, ttl).Err()
 	}
-	//create key
-	err = rcc.redisClient.Set(key, 1, ttl).Err()
 	if err != nil {
-		log.Errorf("error while setting key : %s", key)
-		return
+		log.Errorf("error while setting IncrementRequestCounter : %s for key: %s", err.Error(), key)
 	}
 	return
 }
