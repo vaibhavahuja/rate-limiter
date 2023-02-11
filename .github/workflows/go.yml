@@ -25,4 +25,4 @@ jobs:
       run: go build -v ./...
 
     - name: Test
-      run: docker-compose up && go test ./... -v -count=1 -covermode=atomic -coverpkg=./... -coverprofile=coverage.out
+      run: docker-compose up -d --build && go test ./... -v -count=1 -covermode=atomic -coverpkg=./... -coverprofile=coverage.out
