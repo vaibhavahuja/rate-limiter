@@ -1,7 +1,12 @@
 ## Rate Limiter Service
 
+![](hld.png)
+
+
 #### Tech Doc : [here](https://docs.google.com/document/d/1v14bOs-zXegk_AmMWduAnNVyI_Lus2q_ahYjxFAQe8E/edit#heading=h.10r0locdkasw)
 The tech doc contains the HLD/LLD and other implementation details.
+
+
 
 #### Running the service
 
